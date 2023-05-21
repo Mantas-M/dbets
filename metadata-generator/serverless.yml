@@ -1,0 +1,22 @@
+service: nft-metadata-generator
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  deploymentMethod: direct
+  runtime: nodejs18.x
+  stage: dev
+  region: eu-central-1
+
+plugins:
+  - serverless-offline
+
+functions:
+  myFunction:
+    handler: generator.handler
+    timeout: 30
+    events:
+      - http:
+          path: /generate-metadata-url
+          method: get

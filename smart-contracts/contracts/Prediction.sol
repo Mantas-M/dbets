@@ -3,9 +3,16 @@ pragma solidity ^0.8.7;
 
 import {Functions, FunctionsClient} from "./dev/functions/FunctionsClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-contract PredictionTest is ConfirmedOwner, FunctionsClient {
+contract Prediction is ConfirmedOwner, FunctionsClient, ERC721Enumerable {
   using Functions for Functions.Request;
+    
+  string _baseTokenURI;
+  uint256 public _price = 0.001 ether;
+  uint256 public tokenIds;
+  mapping (uint256 => string) private _tokenURIs;
+
 
   bytes32 public latestRequestId;
   bytes public latestResponse;
@@ -13,25 +20,8 @@ contract PredictionTest is ConfirmedOwner, FunctionsClient {
 
   event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
 
-  /**
-   * @notice Executes once when a contract is created to initialize state variables
-   *
-   * @param oracle - The FunctionsOracle contract
-   */
-  // https://github.com/protofire/solhint/issues/242
-  // solhint-disable-next-line no-empty-blocks
-  constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {}
+  constructor(address oracle) FunctionsClient(oracle) ConfirmedOwner(msg.sender) ERC721("Prediction", "DBP") {}
 
-  /**
-   * @notice Send a simple request
-   *
-   * @param source JavaScript source code
-   * @param secrets Encrypted secrets payload
-   * @param args List of arguments accessible from within the source code
-   * @param subscriptionId Funtions billing subscription ID
-   * @param gasLimit Maximum amount of gas used to call the client contract's `handleOracleFulfillment` function
-   * @return Functions request ID
-   */
   function executeRequest(
     string calldata source,
     bytes calldata secrets,
@@ -51,25 +41,12 @@ contract PredictionTest is ConfirmedOwner, FunctionsClient {
     return assignedReqID;
   }
 
-  /**
-   * @notice Callback that is invoked once the DON has resolved the request or hit an error
-   *
-   * @param requestId The request ID, returned by sendRequest()
-   * @param response Aggregated response from the user code
-   * @param err Aggregated error from the user code or from the execution pipeline
-   * Either response or error parameter will be set, but never both
-   */
   function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
     latestResponse = response;
     latestError = err;
     emit OCRResponse(requestId, response, err);
   }
 
-  /**
-   * @notice Allows the Functions oracle address to be updated
-   *
-   * @param oracle New oracle address
-   */
   function updateOracleAddress(address oracle) public onlyOwner {
     setOracle(oracle);
   }
@@ -77,4 +54,25 @@ contract PredictionTest is ConfirmedOwner, FunctionsClient {
   function addSimulatedRequestId(address oracleAddress, bytes32 requestId) public onlyOwner {
     addExternalRequest(oracleAddress, requestId);
   }
+
+  function mint() public payable  {
+    require(msg.value >= _price, "Ether sent is not correct");
+    require(latestResponse.length > 0, "No metadata is available");
+    tokenIds += 1;
+    _safeMint(msg.sender, tokenIds);
+  }
+
+  function _baseURI() internal view virtual override returns (string memory) {
+    return _baseTokenURI;
+  }
+
+  function withdraw() public onlyOwner  {
+      address _owner = owner();
+      uint256 amount = address(this).balance;
+      (bool sent, ) =  _owner.call{value: amount}("");
+      require(sent, "Failed to send Ether");
+  }
+  
+  receive() external payable {}
+  fallback() external payable {}
 }

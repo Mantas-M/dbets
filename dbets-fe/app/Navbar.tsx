@@ -1,53 +1,54 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { useEffect, useState } from 'react'
-import { ethers } from 'ethers'
+import React from 'react';
+import { useEffect, useState } from 'react';
+import { ethers } from 'ethers';
 
 export default function Navbar() {
-  const [address, setAddress] = useState('Not Connected')
-  const [network, setNetwork] = useState('')
-  const [connected, setConnected] = useState(false)
+  const [address, setAddress] = useState('Not Connected');
+  const [network, setNetwork] = useState('');
+  const [connected, setConnected] = useState(false);
 
-  const bgConnectButton = connected ? 'bg-green-600' : 'bg-black'
+  const bgConnectButton = connected ? 'bg-green-600' : 'bg-black';
 
   useEffect(() => {
     // Check if MetaMask is installed
+
     if (typeof window.ethereum === 'undefined') {
-      console.error('MetaMask is not installed.')
+      console.error('MetaMask is not installed.');
     } else {
-      console.log('MetaMask is installed.')
+      console.log('MetaMask is installed.');
       window.ethereum
         .request({ method: 'eth_requestAccounts' })
         .then(async (res) => {
-          setConnected(true)
-          console.log('Accounts ' + res)
-          setAddress(res[0].slice(0, 6) + '...' + res[0].slice(-4))
+          setConnected(true);
+          console.log('Accounts ' + res);
+          setAddress(res[0].slice(0, 6) + '...' + res[0].slice(-4));
 
           const chainId = await window.ethereum.request({
-            method: 'eth_chainId',
-          })
+            method: 'eth_chainId'
+          });
           if (chainId === '0x13881') {
-            setNetwork('Mumbai')
+            setNetwork('Mumbai');
           } else {
-            setNetwork('Unsupported Network')
+            setNetwork('Unsupported Network');
           }
         })
         .catch((err) => {
-          console.log('oops' + err)
-        })
+          console.log('oops' + err);
+        });
     }
-  }, [])
+  }, []);
 
-  window.ethereum.on('chainChanged', handleChainChanged)
+  window.ethereum.on('chainChanged', handleChainChanged);
 
   function handleChainChanged(chainId) {
     // We recommend reloading the page, unless you must do otherwise.
     // window.location.reload()
     if (chainId === 0x13881) {
-      setNetwork('Mumbai')
+      setNetwork('Mumbai');
     } else {
-      setNetwork('Unsupported Network')
+      setNetwork('Unsupported Network');
     }
 
     // setNetwork(chainId)
@@ -61,29 +62,31 @@ export default function Navbar() {
         const provider = new ethers.providers.Web3Provider(
           window.ethereum,
           'any'
-        )
+        );
         // Prompt user for account connections
-        await provider.send('eth_requestAccounts', [])
-        const signer = provider.getSigner()
-        const accountAdress = (await signer.getAddress()).toLowerCase()
-        console.log('Account:', accountAdress)
+        await provider.send('eth_requestAccounts', []);
+        const signer = provider.getSigner();
+        const accountAdress = (await signer.getAddress()).toLowerCase();
+        console.log('Account:', accountAdress);
 
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' })
+        const chainId = await window.ethereum.request({
+          method: 'eth_chainId'
+        });
         if (chainId === '0x13881') {
-          setNetwork('Mumbai')
+          setNetwork('Mumbai');
         } else {
-          setNetwork('Unsupported Network')
+          setNetwork('Unsupported Network');
         }
 
-        setAddress(accountAdress.slice(0, 6) + '...' + accountAdress.slice(-4))
-        setConnected(true)
+        setAddress(accountAdress.slice(0, 6) + '...' + accountAdress.slice(-4));
+        setConnected(true);
       } catch (error) {
-        console.error('Error connecting to MetaMask:', error)
+        console.error('Error connecting to MetaMask:', error);
       }
     } else {
       console.error(
         'MetaMask not detected. Please install MetaMask to connect.'
-      )
+      );
     }
   }
 
@@ -123,5 +126,5 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
-  )
+  );
 }

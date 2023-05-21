@@ -1,5 +1,8 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "functions-simulate-javascript": "node scripts/simulateFunctionsJavaScript.js"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
