@@ -5,9 +5,11 @@ import * as dotenv from 'dotenv';
 import axios from 'axios';
 import FormData from 'form-data';
 import axiosRetry from 'axios-retry';
+import bodyParser from 'body-parser';
 dotenv.config();
 
 const app = express();
+app.use(bodyParser.json());
 
 const pinMetadataToPinata = async (jsonObject) => {
   try {
@@ -68,22 +70,21 @@ const uploadImageToPinata = async (sourceUrl) => {
   }
 };
 
-const generateImage = async (ticker) => {
+const generateImage = async (ticker, crypto) => {
   const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY
   });
 
   const openai = new OpenAIApi(configuration);
   try {
-    console.log('Creating image...');
-    const completion = await openai.createImage({
-      prompt: `negative ${ticker} crypto price prediction`,
-      n: 1,
-      size: '1024x1024'
-    });
-    const imageUrl = completion.data.data[0].url;
-    console.log('Image created!');
-    return imageUrl;
+    // const completion = await openai.createImage({
+    //   prompt: `positive ${crypto} crypto currency price chart`,
+    //   n: 1,
+    //   size: '256x256'
+    // });
+    // const imageUrl = completion.data.data[0].url;
+    // return imageUrl;
+    return 'https://upload.wikimedia.org/wikipedia/commons/b/b6/Image_created_with_a_mobile_phone.png';
   } catch (error) {
     console.error(error);
     throw new Error(`Error creating image: ${error.message}`);
@@ -95,15 +96,25 @@ const generateMetadata = (
   name,
   pricePrediction,
   dateForPrediction,
-  imageLink
+  imageLink,
+  crypto
 ) => {
-  const todaysDate = new Date().toISOString().slice(0, 10);
+  const currentTimestamp = Date.now();
   const attributes = [
+    { trait_type: 'Crypto', value: crypto },
     { trait_type: 'Ticker', value: ticker },
-    { trait_type: 'Name', value: name },
+    { trait_type: 'User Name', value: name },
     { trait_type: 'Price prediction', value: pricePrediction },
-    { trait_type: 'Date of prediction', value: dateForPrediction },
-    { trait_type: 'Date of mint', value: todaysDate }
+    {
+      display_type: 'date',
+      trait_type: 'Prediction Maturity',
+      value: +dateForPrediction
+    },
+    {
+      display_type: 'date',
+      trait_type: 'Date of mint',
+      value: currentTimestamp
+    }
   ];
 
   const metadata = {
@@ -120,26 +131,68 @@ const generateMetadata = (
   return metadata;
 };
 
-app.get('/generate-metadata-url', async (req, res) => {
-  const { ticker, name, pricePrediction, dateForPrediction } = req.query;
+app.get('/generate-image-url', async (req, res) => {
+  const { ticker, crypto } = req.query;
 
-  if (!ticker || !pricePrediction || !dateForPrediction) {
+  if (!ticker || !crypto) {
+    console.log(`Missing required params ${ticker}, ${crypto}`);
+    return res.status(400).send('Missing required params');
+  }
+
+  const imageUrl = await generateImage(ticker, crypto);
+
+  res.send(imageUrl);
+});
+
+app.get('/pin-image-to-pinata', async (req, res) => {
+  const { sourceUrl } = req.query;
+
+  if (!sourceUrl) {
+    console.log(`Missing required params ${sourceUrl}`);
+    return res.status(400).send('Missing required params');
+  }
+
+  const imageUrl = await uploadImageToPinata(sourceUrl);
+
+  res.send(imageUrl);
+});
+
+app.get('/generate-metadata-json', async (req, res) => {
+  const {
+    ticker,
+    username,
+    pricePrediction,
+    predictionMaturity,
+    crypto,
+    imageLink
+  } = req.query;
+
+  if (!ticker || !pricePrediction || !predictionMaturity || !crypto) {
     console.log(
-      `Missing required params ${ticker}, ${pricePrediction}, ${dateForPrediction}`
+      `Missing required params ${ticker}, ${pricePrediction}, ${predictionMaturity}, ${crypto}`
     );
     return res.status(400).send('Missing required params');
   }
 
-  const tempImageLink = await generateImage();
-  const imageLink = await uploadImageToPinata(tempImageLink);
-
   const metadata = generateMetadata(
     ticker,
-    name,
+    username,
     pricePrediction,
-    dateForPrediction,
-    imageLink
+    predictionMaturity,
+    imageLink,
+    crypto
   );
+
+  res.json(metadata);
+});
+
+app.post('/pin-metadata-to-pinata', async (req, res) => {
+  const { metadata } = req.body;
+
+  if (!metadata) {
+    console.log(`Missing required params ${metadata}`);
+    return res.status(400).send('Missing required params');
+  }
 
   const metadataUrl = await pinMetadataToPinata(metadata);
 

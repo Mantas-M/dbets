@@ -11,12 +11,26 @@ provider:
 
 plugins:
   - serverless-offline
+  - serverless-dotenv-plugin
+
+custom:
+  dotenv:
+    path: .env
 
 functions:
-  myFunction:
+  generate:
     handler: generator.handler
     timeout: 30
     events:
       - http:
-          path: /generate-metadata-url
+          path: /generate-image-url
           method: get
+      - http:
+          path: /pin-image-to-pinata
+          method: get
+      - http:
+          path: /generate-metadata-json
+          method: get
+      - http:
+          path: /pin-metadata-to-pinata
+          method: post

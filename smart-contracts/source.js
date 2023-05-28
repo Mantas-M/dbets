@@ -1,6 +1,9 @@
-const coinMarketCapCoinId = args[0];
-const coinGeckoCoinId = args[1];
-const coinPaprikaCoinId = args[2];
+const crypto = args[0];
+const ticker = args[1];
+const name = args[2];
+const pricePrediction = args[3];
+const dateForPrediction = args[4];
+const imageLink = args[5];
 
 if (
   secrets.apiKey == '' ||
